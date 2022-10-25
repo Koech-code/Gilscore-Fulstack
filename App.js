@@ -1,20 +1,69 @@
-import { StatusBar } from 'expo-status-bar';
-import { StyleSheet, Text, View } from 'react-native';
+import React from 'react';
+import { View, Image, Button, Platform } from 'react-native';
+import { launchImageLibrary } from 'react-native-image-picker';
 
-export default function App() {
+const SERVER_URL = 'http://localhost:8000';
+
+const createFormData = (photo, body = {}) => {
+  const data = new FormData();
+
+  data.append('photo', {
+    name: photo.fileName,
+    type: photo.type,
+    uri: Platform.OS === 'ios' ? photo.uri.replace('file://', '') : photo.uri,
+  });
+
+  Object.keys(body).forEach((key) => {
+    data.append(key, body[key]);
+  });
+
+  return data;
+};
+
+const App = () => {
+  const [photo, setPhoto] = React.useState(null);
+
+  const handleChoosePhoto = () => {
+    launchImageLibrary({ noData: true }, (response) => {
+      // console.log(response);
+      if (response) {
+        setPhoto(response);
+      }
+    });
+  };
+
+  const handleUploadPhoto = () => {
+    fetch(`${SERVER_URL}/tweets/create/`, {
+      method: 'POST',
+      headers: new Headers({
+        'Authorization': 'Token '+('a1e4c99f78e976b5329727893a658ac65a979550abda3788c08138dd48392632'), 
+        'Content-Type': 'application/x-www-form-urlencoded'
+    }), 
+      body: createFormData(photo, { userId: '123' }),
+    })
+      .then((response) => response.json())
+      .then((response) => {
+        console.log('response', response);
+      })
+      .catch((error) => {
+        console.log('error', error);
+      });
+  };
+
   return (
-    <View style={styles.container}>
-      <Text>Open up App.js to start working on your app!</Text>
-      <StatusBar style="auto" />
+    <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
+      {photo && (
+        <>
+          <Image
+            source={{ uri: photo.uri }}
+            style={{ width: 300, height: 300 }}
+          />
+          <Button title="Upload Photo" onPress={handleUploadPhoto} />
+        </>
+      )}
+      <Button title="Choose Photo" onPress={handleChoosePhoto} />
     </View>
   );
-}
+};
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#fff',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-});
+export default App;
